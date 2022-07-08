@@ -13,7 +13,6 @@
         "workers_per_zone": 1
     },
     "prefix": "af-cdevents",
-    "resource_group": "",
     "vpc": {
         "address_prefixes": null,
         "classic_access": false,
