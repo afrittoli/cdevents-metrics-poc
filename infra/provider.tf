@@ -1,39 +1,39 @@
 ##############################################################################
-# VPC GUID
+# Terraform Providers
 ##############################################################################
 
-output vpc_id {
-  description = "ID of VPC created"
-  value       = ibm_is_vpc.vpc.id
+terraform {
+  required_providers {
+    ibm = {
+      source = "IBM-Cloud/ibm"
+      version = "1.19.0"
+    }
+  }
 }
 
 ##############################################################################
 
 
 ##############################################################################
-# Subnet Outputs
+# IBM Cloud Provider
 ##############################################################################
 
-output subnet_ids {
-  description = "List of subnet ids in vpc tier 1"
-  value       = module.subnets.subnet_ids
-}
-
-output subnet_detail_list {
-  description = "A list of subnets containing names, CIDR blocks, and zones."
-  value       = module.subnets.subnet_detail_list
+provider ibm {
+  ibmcloud_api_key      = var.ibmcloud_api_key
+  region                = var.ibm_region
+  generation            = 2
+  ibmcloud_timeout      = 60
 }
 
 ##############################################################################
 
 
 ##############################################################################
-# ACL ID
+# Resource Group where VPC will be created
 ##############################################################################
 
-output acl_id {
-  description = "ID of ACL created"
-  value       = ibm_is_network_acl.multizone_acl.id
+data ibm_resource_group resource_group {
+  name = var.resource_group
 }
 
 ##############################################################################
