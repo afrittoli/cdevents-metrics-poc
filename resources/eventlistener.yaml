@@ -1,0 +1,82 @@
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: tekton-ci
+  namespace: tekton-ci
+spec:
+  serviceAccountName: tekton-ci
+  triggerGroups:
+    - name: gitea-push-group
+      interceptors:
+        - name: "Filter the Gitea org and event"
+          ref:
+            name: "cel"
+          params:
+            - name: "filter"
+              value: >-
+                body.repository.full_name.startsWith('cdevents/') &&
+                header.match('X-Gitea-Event', 'push')
+            - name: "overlays"
+              value:
+                - key: wholebody
+                  expression: body.marshalJSON()
+      triggerSelector:
+        namespaceSelector:
+          matchNames:
+            - tekton-ci
+        labelSelector:
+          matchLabels:
+            ci.tekton.dev/trigger-type: github.push
+    - name: gitea-pullrequest-group
+      interceptors:
+        - name: "Filter the Gitea org and event"
+          ref:
+            name: "cel"
+          params:
+            - name: "filter"
+              value: >-
+                body.repository.full_name.startsWith('cdevents/') &&
+                header.match('X-Gitea-Event', 'pull_request')
+            - name: "overlays"
+              value:
+                - key: wholebody
+                  expression: body.marshalJSON()
+                - key: source
+                  expression: body.pull_request.url.parseURL().host
+      triggerSelector:
+        namespaceSelector:
+          matchNames:
+            - tekton-ci
+        labelSelector:
+          matchLabels:
+            ci.tekton.dev/trigger-type: github.pullrequest
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: events
+  namespace: default
+spec:
+  serviceAccountName: tekton-events
+  triggerGroups:
+    - name: cdevents
+      interceptors:
+        - name: "Filter all cdevents"
+          ref:
+            name: "cel"
+          params:
+            - name: "filter"
+              value: >-
+                body.context.type.startsWith('dev.cdevent')
+            - name: "overlays"
+              value:
+                - key: wholebody
+                  expression: body.marshalJSON()
+      triggerSelector:
+        namespaceSelector:
+          matchNames:
+            - default
+        labelSelector:
+          matchLabels:
+            ci.tekton.dev/trigger-type: cdevents.handler

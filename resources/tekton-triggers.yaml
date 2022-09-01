@@ -1,0 +1,90 @@
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: push
+  namespace: tekton-ci
+  labels:
+    ci.tekton.dev/trigger-type: github.push
+spec:
+  interceptors:
+    - name: "Filter by repo"
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            body.repository.name == 'podtato-head' &&
+            body.ref == 'refs/heads/main'
+  bindings:
+    - name: eventBody
+      value: $(extensions.wholebody)
+    - name: sourceEventId
+      value: $(header.X-GitHub-Delivery)
+  template:
+    ref: ci-pipeline
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: pullrequest
+  namespace: tekton-ci
+  labels:
+    ci.tekton.dev/trigger-type: github.pullrequest
+spec:
+  interceptors:
+    - name: "Filter by repo"
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            body.repository.name == 'podtato-head' &&
+            body.action == 'closed' &&
+            body.pull_request.merged == true &&
+            body.pull_request.base.ref == 'main'
+  bindings:
+    - name: eventType
+      value: "dev.cdevents.change.merged.v1"
+    - name: eventData
+      value: $(extensions.wholebody)
+    - name: source
+      value: $(extensions.source)
+    - name: subject
+      value: pulls/$(body.number)
+    - name: repoOwner
+      value: $(body.repository.owner.username)
+    - name: repoName
+      value: $(body.repository.name)
+    - name: prUrl
+      value: $(body.pull_request.url)
+    - name: headSha
+      value: $(body.pull_request.head.sha)
+  template:
+    ref: cdevents
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: cdevents
+  namespace: default
+  labels:
+    ci.tekton.dev/trigger-type: cdevents.handler
+spec:
+  bindings:
+    - name: eventBody
+      value: $(extensions.wholebody)
+    - name: ceId
+      value: $(header.ce-id)
+    - name: ceSource
+      value: $(header.ce-source)
+    - name: ceSpecVersion
+      value: $(header.ce-specversion)
+    - name: ceType
+      value: $(header.ce-type)
+    - name: ceSubject
+      value: $(header.ce-subject)
+    - name: ceTime
+      value: $(header.ce-time)
+  template:
+    ref: display-pipeline

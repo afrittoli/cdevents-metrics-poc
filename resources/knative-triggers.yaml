@@ -1,0 +1,9 @@
+---
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: all-to-tekton-el-events
+spec:
+  broker: events-broker
+  subscriber:
+    uri: http://el-events.default.svc.cluster.local:8080
