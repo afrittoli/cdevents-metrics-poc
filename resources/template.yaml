@@ -89,6 +89,8 @@ spec:
     description: $(body.pull_request.url)
   - name: headSha
     description: SHA of the repo head after merge
+  - name: eventData
+    description: The body of the incoming webhook/event
   resourcetemplates:
     - apiVersion: tekton.dev/v1alpha1
       kind: Run
@@ -106,3 +108,7 @@ spec:
           - name: subject
             value:
               id: $(tt.params.subject)
+          - name: data
+            value:
+              customDataContentType: "application/json"
+              customData: $(tt.param.eventData)
