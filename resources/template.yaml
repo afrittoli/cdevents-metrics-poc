@@ -111,4 +111,4 @@ spec:
           - name: data
             value:
               customDataContentType: "application/json"
-              customData: $(tt.param.eventData)
+              customData: $(tt.params.eventData)
