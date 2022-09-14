@@ -1,28 +1,28 @@
----
-apiVersion: triggers.tekton.dev/v1beta1
-kind: Trigger
-metadata:
-  name: push
-  namespace: tekton-ci
-  labels:
-    ci.tekton.dev/trigger-type: github.push
-spec:
-  interceptors:
-    - name: "Filter by repo"
-      ref:
-        name: cel
-      params:
-        - name: filter
-          value: >-
-            body.repository.name == 'podtato-head' &&
-            body.ref == 'refs/heads/main'
-  bindings:
-    - name: eventBody
-      value: $(extensions.wholebody)
-    - name: sourceEventId
-      value: $(header.X-GitHub-Delivery)
-  template:
-    ref: ci-pipeline
+# ---
+# apiVersion: triggers.tekton.dev/v1beta1
+# kind: Trigger
+# metadata:
+#   name: push
+#   namespace: tekton-ci
+#   labels:
+#     ci.tekton.dev/trigger-type: github.push
+# spec:
+#   interceptors:
+#     - name: "Filter by repo"
+#       ref:
+#         name: cel
+#       params:
+#         - name: filter
+#           value: >-
+#             body.repository.name == 'podtato-head' &&
+#             body.ref == 'refs/heads/main'
+#   bindings:
+#     - name: eventBody
+#       value: $(extensions.wholebody)
+#     - name: sourceEventId
+#       value: $(header.X-GitHub-Delivery)
+#   template:
+#     ref: ci-pipeline
 ---
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
@@ -62,32 +62,32 @@ spec:
       value: $(body.pull_request.head.sha)
   template:
     ref: cdevents-change
-# ---
-# apiVersion: triggers.tekton.dev/v1beta1
-# kind: Trigger
-# metadata:
-#   name: cdevents
-#   namespace: default
-#   labels:
-#     ci.tekton.dev/trigger-type: cdevents.handler
-# spec:
-#   bindings:
-#     - name: eventBody
-#       value: $(extensions.wholebody)
-#     - name: ceId
-#       value: $(header.ce-id)
-#     - name: ceSource
-#       value: $(header.ce-source)
-#     - name: ceSpecVersion
-#       value: $(header.ce-specversion)
-#     - name: ceType
-#       value: $(header.ce-type)
-#     - name: ceSubject
-#       value: $(header.ce-subject)
-#     - name: ceTime
-#       value: $(header.ce-time)
-#   template:
-#     ref: display-pipeline
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: cdevents
+  namespace: default
+  labels:
+    ci.tekton.dev/trigger-type: cdevents.handler
+spec:
+  bindings:
+    - name: eventBody
+      value: $(extensions.wholebody)
+    - name: ceId
+      value: $(header.ce-id)
+    - name: ceSource
+      value: $(header.ce-source)
+    - name: ceSpecVersion
+      value: $(header.ce-specversion)
+    - name: ceType
+      value: $(header.ce-type)
+    - name: ceSubject
+      value: $(header.ce-subject)
+    - name: ceTime
+      value: $(header.ce-time)
+  template:
+    ref: display-pipeline
 ---
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger

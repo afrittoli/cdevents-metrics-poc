@@ -14,11 +14,11 @@ spec:
     - apiVersion: tekton.dev/v1beta1
       kind: TaskRun
       metadata:
-        generateName: echo-hello-world-run-
+        generateName: display-event-
       spec:
         taskSpec:
           steps:
-            - name: hello-world
+            - name: display-event
               image: stedolan/jq@sha256:a61ed0bca213081b64be94c5e1b402ea58bc549f457c2682a86704dd55231e09
               script: |
                 echo "sourceEventId: $(tt.params.sourceEventId)"
@@ -54,7 +54,7 @@ spec:
       spec:
         taskSpec:
           steps:
-            - name: hello-world
+            - name: display-cdevent
               image: stedolan/jq@sha256:a61ed0bca213081b64be94c5e1b402ea58bc549f457c2682a86704dd55231e09
               script: |
                 echo "ce-id: $(tt.params.ceId)"
@@ -220,7 +220,7 @@ spec:
       spec:
         taskSpec:
           steps:
-            - name: hello-world
+            - name: display-cdevent
               image: stedolan/jq@sha256:a61ed0bca213081b64be94c5e1b402ea58bc549f457c2682a86704dd55231e09
               script: |
                 echo "ce-id: $(tt.params.ceId)"
