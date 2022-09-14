@@ -69,7 +69,7 @@ spec:
 apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerTemplate
 metadata:
-  name: cdevents
+  name: cdevents-change
   namespace: tekton-ci
 spec:
   params:
@@ -89,8 +89,6 @@ spec:
     description: $(body.pull_request.url)
   - name: headSha
     description: SHA of the repo head after merge
-  - name: eventData
-    description: The body of the incoming webhook/event
   resourcetemplates:
     - apiVersion: tekton.dev/v1alpha1
       kind: Run
@@ -112,3 +110,124 @@ spec:
             value:
               customDataContentType: "application/json"
               customData: $(tt.params.eventData)
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: cdevents-artifact
+  namespace: tekton-ci
+spec:
+  params:
+  - name: eventType
+    description: The CDEvents event type
+  - name: eventData
+    description: Data to be passed into the CDEvent
+  - name: source
+    description: The event source identifier
+  - name: subject
+    description: The ID for the subject
+  - name: sha
+    description: SHA of the repo head after merge
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1alpha1
+      kind: Run
+      metadata:
+        generateName: $(tt.params.eventType)-
+      spec:
+        ref:
+          apiVersion: custom.tekton.dev/v0
+          kind: CDEvent
+        params:
+          - name: context
+            value:
+              type: $(tt.params.eventType)
+              source: $(tt.params.source)
+          - name: subject
+            value:
+              id: $(tt.params.subject)
+          - name: data
+            value:
+              customDataContentType: "application/json"
+              customData: $(tt.params.eventData)
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: cdevents-service
+  namespace: tekton-cd
+spec:
+  params:
+  - name: eventType
+    description: The CDEvents event type
+  - name: eventData
+    description: Data to be passed into the CDEvent
+  - name: source
+    description: The event source identifier
+  - name: subject
+    description: The ID for the subject
+  - name: environmentId
+    description: the Id of the environment
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1alpha1
+      kind: Run
+      metadata:
+        generateName: $(tt.params.eventType)-
+      spec:
+        ref:
+          apiVersion: custom.tekton.dev/v0
+          kind: CDEvent
+        params:
+          - name: context
+            value:
+              type: $(tt.params.eventType)
+              source: $(tt.params.source)
+          - name: subject
+            value:
+              id: $(tt.params.subject)
+              environmentId: $(tt.params.environmentId)
+          - name: data
+            value:
+              customDataContentType: "application/json"
+              customData: $(tt.params.eventData)
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: display-pipeline
+  namespace: tekton-cd
+spec:
+  params:
+  - name: eventBody
+    description: >-
+      The whole body of the source event, marshalled into a string
+  - name: ceId
+    description: CloudEvent id
+  - name: ceSource
+    description: CloudEvent source
+  - name: ceSpecVersion
+    description: CloudEvent version
+  - name: ceType
+    description: CloudEvent type
+  - name: ceSubject
+    description: CloudEvent subject
+  - name: ceTime
+    description: CloudEvent time
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: TaskRun
+      metadata:
+        generateName: $(tt.params.ceType)-
+      spec:
+        taskSpec:
+          steps:
+            - name: hello-world
+              image: stedolan/jq@sha256:a61ed0bca213081b64be94c5e1b402ea58bc549f457c2682a86704dd55231e09
+              script: |
+                echo "ce-id: $(tt.params.ceId)"
+                echo "ce-source: $(tt.params.ceSource)"
+                echo "ce-version: $(tt.params.ceSpecVersion)"
+                echo "ce-type: $(tt.params.ceType)"
+                echo "ce-subject: $(tt.params.ceSubject)"
+                echo "ce-time: $(tt.params.ceTime)"
+                echo
+                printf "%s" '$(tt.params.eventBody)' | jq .

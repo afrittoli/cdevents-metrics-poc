@@ -7,3 +7,24 @@ spec:
   broker: events-broker
   subscriber:
     uri: http://el-events.default.svc.cluster.local:8080
+---
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: all-to-event-display
+spec:
+  broker: events-broker
+  subscriber:
+    uri: http://event-display.default.svc.cluster.local:80
+---
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: deployment-events-to-tekton-cd
+spec:
+  broker: events-broker
+  filter:
+    attributes:
+      kind: Deployment
+  subscriber:
+    uri: http://el-tekton-cd.tekton-cd.svc.cluster.local:8080

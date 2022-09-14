@@ -51,6 +51,29 @@ spec:
         labelSelector:
           matchLabels:
             ci.tekton.dev/trigger-type: github.pullrequest
+    - name: registry-group
+      interceptors:
+        - name: "Filter cdevents.azurecr.io events"
+          ref:
+            name: "cel"
+          params:
+            - name: "filter"
+              value: >-
+                body.request.host == "cdevents.azurecr.io" &&
+                body.action == "push"
+            - name: "overlays"
+              value:
+                - key: wholebody
+                  expression: body.marshalJSON()
+                - key: source
+                  expression: body.request.host
+      triggerSelector:
+        namespaceSelector:
+          matchNames:
+            - tekton-ci
+        labelSelector:
+          matchLabels:
+            ci.tekton.dev/trigger-type: azure.push
 ---
 apiVersion: triggers.tekton.dev/v1beta1
 kind: EventListener
@@ -80,3 +103,57 @@ spec:
         labelSelector:
           matchLabels:
             ci.tekton.dev/trigger-type: cdevents.handler
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 100m
+  name: tekton-ci
+  namespace: tekton-ci
+spec:
+  ingressClassName: public-iks-k8s-nginx
+  rules:
+  - host: webhook.af-cdevents-dff43bc8701fcd5837d6de963718ad39-0000.eu-gb.containers.appdomain.cloud
+    http:
+      paths:
+      - backend:
+          service:
+            name: el-tekton-ci
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - webhook.af-cdevents-dff43bc8701fcd5837d6de963718ad39-0000.eu-gb.containers.appdomain.cloud
+    secretName: af-cdevents-dff43bc8701fcd5837d6de963718ad39-0000
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: tekton-cd
+  namespace: tekton-cd
+spec:
+  serviceAccountName: tekton-cd
+  triggerGroups:
+    - name: api-events-group
+      interceptors:
+        - name: "Filter knative resource event"
+          ref:
+            name: "cel"
+          params:
+            # - name: "filter"
+            #   value: >-
+            #     header['ce-type'][0].startsWith('dev.knative.apiserver.resource')
+            - name: "overlays"
+              value:
+                - key: wholebody
+                  expression: body.marshalJSON()
+      triggerSelector:
+        namespaceSelector:
+          matchNames:
+            - tekton-cd
+        labelSelector:
+          matchLabels:
+            ci.tekton.dev/trigger-type: knative.resource

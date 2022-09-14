@@ -49,9 +49,9 @@ spec:
     - name: eventData
       value: $(extensions.wholebody)
     - name: source
-      value: $(extensions.source)
+      value: $(extensions.source)/$(body.repository.owner.username)/$(body.repository.name)
     - name: subject
-      value: pulls/$(body.number)
+      value: $(body.pull_request.head.sha)
     - name: repoOwner
       value: $(body.repository.owner.username)
     - name: repoName
@@ -61,30 +61,90 @@ spec:
     - name: headSha
       value: $(body.pull_request.head.sha)
   template:
-    ref: cdevents
+    ref: cdevents-change
+# ---
+# apiVersion: triggers.tekton.dev/v1beta1
+# kind: Trigger
+# metadata:
+#   name: cdevents
+#   namespace: default
+#   labels:
+#     ci.tekton.dev/trigger-type: cdevents.handler
+# spec:
+#   bindings:
+#     - name: eventBody
+#       value: $(extensions.wholebody)
+#     - name: ceId
+#       value: $(header.ce-id)
+#     - name: ceSource
+#       value: $(header.ce-source)
+#     - name: ceSpecVersion
+#       value: $(header.ce-specversion)
+#     - name: ceType
+#       value: $(header.ce-type)
+#     - name: ceSubject
+#       value: $(header.ce-subject)
+#     - name: ceTime
+#       value: $(header.ce-time)
+#   template:
+#     ref: display-pipeline
 ---
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: cdevents
-  namespace: default
+  name: azurecr-push
+  namespace: tekton-ci
   labels:
-    ci.tekton.dev/trigger-type: cdevents.handler
+    ci.tekton.dev/trigger-type: azure.push
 spec:
+  interceptors:
+    - name: "Filter by repo"
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            body.target.repository.startsWith('podtato')
   bindings:
-    - name: eventBody
+    - name: eventType
+      value: "dev.cdevents.artifact.published.v1"
+    - name: eventData
       value: $(extensions.wholebody)
-    - name: ceId
-      value: $(header.ce-id)
-    - name: ceSource
-      value: $(header.ce-source)
-    - name: ceSpecVersion
-      value: $(header.ce-specversion)
-    - name: ceType
-      value: $(header.ce-type)
-    - name: ceSubject
-      value: $(header.ce-subject)
-    - name: ceTime
-      value: $(header.ce-time)
+    - name: source
+      value: $(extensions.source)
+    - name: subject
+      value: pkg:docker/$(body.target.repository)@$(body.target.digest)
+    - name: sha
+      value: $(body.target.digest)
   template:
-    ref: display-pipeline
+    ref: cdevents-artifact
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: deployment-created
+  namespace: tekton-cd
+  labels:
+    ci.tekton.dev/trigger-type: knative.resource
+spec:
+  interceptors:
+    - name: "Filter by resource and action"
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            header.match('ce-type', 'dev.knative.apiserver.resource.add')
+  bindings:
+    - name: eventType
+      value: "dev.cdevents.service.deployed.v1"
+    - name: eventData
+      value: $(extensions.wholebody)
+    - name: source
+      value: $(header.ce-source)
+    - name: subject
+      value: $(header.ce-subject)
+    - name: environmentId
+      value: $(body.metadata.namespace)
+  template:
+    ref: cdevents-service
